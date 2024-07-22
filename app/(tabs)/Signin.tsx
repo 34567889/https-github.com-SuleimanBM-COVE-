@@ -1,29 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet,Image, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScaledSheet } from 'react-native-size-matters';
-import { auth } from '@/app/firebaseConfig';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 
-interface SignInScreenProps {
-  setUser: React.Dispatch<React.SetStateAction<string | null>>;
-  setAuthState: React.Dispatch<React.SetStateAction<string | null>>;
-}
-
-const SignInScreen: React.FC<SignInScreenProps> = ({ setUser, setAuthState }) => {
+const SignInScreen: React.FC = () => {
   const [emailOrPhone, setEmailOrPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const auth = getAuth();
 
   const handleSignIn = async () => {
     try {
       const response = await signInWithEmailAndPassword(auth, emailOrPhone, password);
-      if (typeof setUser === 'function' && response.user.email){
-      setUser(response.user.email);}
-      if (typeof setAuthState === 'function'){
-      setAuthState('authenticated');}
-      router.push('/(nav)');
+      router.push('/(nav)'); // Redirect on successful sign-in
     } catch (error) {
       console.error('Error signing in:', error);
       setError('Failed to sign in. Please check your credentials and try again.');
@@ -32,37 +23,37 @@ const SignInScreen: React.FC<SignInScreenProps> = ({ setUser, setAuthState }) =>
 
   return (
     <View style={styles.container}>
-    <View style={{top: 100}}>
-    <View style={{alignItems: 'center',bottom: 30}}>
-        <Image source={require("../../assets/images/LogoRed.png")} />
+      <View style={{ top: 100 }}>
+        <View style={{ alignItems: 'center', bottom: 30 }}>
+          <Image source={require("../../assets/images/LogoRed.png")} />
+        </View>
+        <View>
+          <View style={{ display: "flex", flexDirection: 'column', alignItems: 'center', top: 20, marginBottom: 60 }}>
+            <Text style={styles.title}>Welcome back!</Text>
+            <Text>We're so excited to see you again!</Text>
+          </View>
+          <TextInput
+            style={styles.input}
+            placeholder="Email or Phone"
+            value={emailOrPhone}
+            onChangeText={setEmailOrPhone}
+          />
+          <TextInput
+            style={[styles.input, { marginBottom: 2 }]}
+            placeholder="Password"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
+          {error && <Text style={styles.error}>{error}</Text>}
+          <Text style={styles.forgotPassword} onPress={() => router.push('/ForgotPassword')}>
+            Forgot password?
+          </Text>
+          <TouchableOpacity style={styles.signin} onPress={handleSignIn}>
+            <Text style={{ color: "#ffffff" }}>Sign in</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-      <View>
-      <View style={{display: "flex",flexDirection: 'column',alignItems: 'center',top: 20,marginBottom: 60,}}>
-      <Text style={styles.title}>Welcome back!</Text>
-      <Text style={{}} > We're so excited to see you again!</Text>
-      </View>
-      <TextInput
-        style={styles.input}
-        placeholder="Email or Phone"
-        value={emailOrPhone}
-        onChangeText={setEmailOrPhone}
-      />
-      <TextInput
-        style={[styles.input,{marginBottom: 2}]}
-        placeholder="Password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-      <Text style={styles.forgotPassword} onPress={() => router.push('/ForgotPassword')}>
-        Forgot password?
-      </Text>
-      </View>
-      <TouchableOpacity style={styles.signin} onPress={handleSignIn}>
-          <Text style={{color: "#ffffff"}}>Sign in</Text>
-      </TouchableOpacity>
-      
-    </View>
     </View>
   );
 }
@@ -103,7 +94,12 @@ const styles = ScaledSheet.create({
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: "center",
-  }
+  },
+  error: {
+    color: 'red',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
 });
 
 export default SignInScreen;

@@ -1,43 +1,77 @@
-import { router } from 'expo-router';
-import React from 'react';
-import { View, Text, StyleSheet, Image, TextInput, FlatList, TouchableOpacity, KeyboardAvoidingView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Image, TextInput, FlatList, TouchableOpacity } from 'react-native';
+import { collection, query, onSnapshot } from 'firebase/firestore';
+import { firestore } from '../firebaseConfig';
+import { useRouter } from 'expo-router';
 
-const messages = [
-  { id: '1', name: 'Jacob Stanley', message: 'Lorem ipsum', time: '12:34 AM', image: require('../../assets/images/Dummy.png') },
-  // Add more message items here
-];
+interface User {
+  id: string;
+  username: string;
+  displayName: string;
+  profilePicture: string;
+  createdAt: Date;
+}
 
 export default function HomeMessages() {
+  const [users, setUsers] = useState<User[]>([]);
+  const router = useRouter();
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const userQuery = query(collection(firestore, 'userDetails'));
+        const unsubscribe = onSnapshot(userQuery, (querySnapshot) => {
+          const usersList: User[] = [];
+          querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            if (data) {
+              usersList.push({
+                id: doc.id,
+                username: data.username || '',
+                displayName: data.displayName || '',
+                profilePicture: data.profilePicture || '',
+                createdAt: (data.createdAt as { toDate: () => Date }).toDate() || new Date(),
+              });
+            }
+          });
+          setUsers(usersList);
+        });
+
+        return () => unsubscribe();
+      } catch (error) {
+        console.error('Error fetching users: ', error);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Messages</Text>
       </View>
-      
-
       <TextInput style={styles.searchInput} placeholder="Search" />
       <FlatList
-        data={messages}
+        data={users}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.messageItem} onPress={()=> {router.push("/ChatPage")}}>
-            <Image source={item.image} style={styles.messageImage} />
+          <TouchableOpacity style={styles.messageItem} onPress={() => router.push(`/ChatPage?receiverId=${item.id}`)}>
+            <Image source={{ uri: item.profilePicture }} style={styles.messageImage} />
             <View style={styles.messageContent}>
-              <Text style={styles.messageName}>{item.name}</Text>
-              <Text style={styles.messageText}>{item.message}</Text>
+              <Text style={styles.messageName}>{item.username}</Text>
+              <Text style={styles.messageText}>{item.displayName}</Text>
             </View>
-            <Text style={styles.messageTime}>{item.time}</Text>
+            <Text style={styles.messageTime}>{item.createdAt.toLocaleTimeString()}</Text>
           </TouchableOpacity>
         )}
       />
-
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    
     backgroundColor: '#fff',
     padding: 5,
   },
@@ -49,10 +83,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-  },
-  addIcon: {
-    width: 30,
-    height: 30,
   },
   searchInput: {
     backgroundColor: '#f1f1f1',
